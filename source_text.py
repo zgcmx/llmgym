@@ -15,6 +15,16 @@ class ObsTranslator:
         # 使用换行符连接各个无人机的描述
         return "\n".join(descriptions)
 
+    def terminate(self,term):
+        descriptions = ""
+        for i in range(len(term)):
+            if term[i]:
+                if descriptions =="":
+                    descriptions = f"Drone{i+1} Find terminated!"
+                else:
+                    descriptions += "/n" + f"Drone{i+1} Find terminated!"
+
+        return descriptions
     # def translate(self, states):
     #     descriptions = []
      
@@ -99,9 +109,9 @@ class TransitionTranslator(ObsTranslator):
 
         reward_desc = f"Result: Reward of {info['reward']}, "
         next_state_desc = ObsTranslator().translate([info['next_state']])
-
+        term_desc = ObsTranslator().terminate(info['terminated'])
         # descriptions.append(f"{state_desc}.\n {action_desc} \n {reward_desc} \n Next State: {next_state_desc}")
-        descriptions=f"{next_state_desc}\n"
+        descriptions=f"{next_state_desc}\n{info['info']}\n{term_desc}"
 
         return descriptions
 

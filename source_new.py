@@ -17,7 +17,7 @@ matplotlib.rcParams['font.family']='sans-serif'
 # 网格参数
 nx, ny = 100, 100
 dx, dy = 1.0, 1.0
-t_step = 50
+t_step = 25
 num_drones=2
 # 创建二维网格
 mesh = Grid2D(dx=dx, dy=dy, nx=nx, ny=ny)
@@ -129,6 +129,7 @@ class PollutionSourceEnv(gym.Env):
 
     def step(self, actions):
         # 更新无人机位置
+        information=""
         for i in range(self.num_drones):
             action = actions[i]
             dx, dy = 0, 0
@@ -154,7 +155,8 @@ class PollutionSourceEnv(gym.Env):
             if not collision:
                 self.drones_positions[i, 0] = np.clip(new_x, 0, self.grid_size - 1)
                 self.drones_positions[i, 1] = np.clip(new_y, 0, self.grid_size - 1)
-
+            else:
+                information = f"Drone {i+1} encountered an obstacle in this step! Continuing the current movement will not be beneficial for locating the source of pollution; it may be necessary to change the direction of movement."
             self.time_since_highest[i] = self.time_since_highest[i] + 1
         # 更新污染物浓度
         eq = TransientTerm() == DiffusionTerm(coeff=self.diffCoeff)
@@ -200,7 +202,7 @@ class PollutionSourceEnv(gym.Env):
 
 
         # ...之后的代码...
-        return np.array(obs), np.array(rewards), term, {}
+        return np.array(obs), np.array(rewards), term, information
 
     def get_concentration_at(self, position):
         # 将一维数组转换为二维数组
@@ -217,21 +219,24 @@ print(describer.describe_action())
 
 env = PollutionSourceEnv()
 observation, reward,terminated,info = env.reset()
+print(terminated)
 storage.add_sample(observation, [4,4], observation, reward, terminated, info)
 def update(frame):
     # action = env.action_space.sample()
     infos = storage.get_samples()
     word = translator.translate(infos)
-    action = chat(word)
+    print(word)
+    temp = chat(word)
+    if temp != [-1,-1]:
+        action = temp
     new_observation, reward, terminated, info = env.step(action)
     global observation
     storage.add_sample(observation, action, new_observation, reward, terminated, info)
-
     print(word)
     for i in range(num_drones):
         if terminated[i]:
             # observation, info, _, _ = env.reset()
-            print(f"Drone{i} Find terminated!")
+            print(f"Drone{i+1} Find terminated!")
             # env.close()
     env.concentration_data[frame, :, :] = env.concentration.value.reshape((nx, ny))
     env.ax.clear()
@@ -250,6 +255,10 @@ plt.show()
 
 # Close the environment
 env.close()
+
+
+
+
 
 # # Retrieve stored transitions
 # infos = storage.get_samples()
